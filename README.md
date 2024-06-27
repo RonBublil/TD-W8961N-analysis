@@ -11,12 +11,17 @@ I uploaded a script that automates this process, assuming the default username a
 
 
 ##**Hardware**
+![ethernet card](images/card.png)
+![ethernet cpu](images/cpu.png)
+![The PCB](images/pcb.png)
 
 Upon examining the PCB, I noticed four pins that could be a UART interface. After further investigation, I confirmed they were indeed UART pins. The baud rate is 115200. When I connected to the UART shell, it booted up a custom shell with limited commands.
-
+![The UART](images/uart.png)
 Unfortunately, I didn't find anything immediately useful through this interface.
 
+![ethernet flash](images/flash.png)
 Next, I extracted the firmware using a SOIC-8 clip and the flashrom software. The chip used is an EN25Q1N.
+
 
 I then ran binwalk on the firmware binary file.
 
