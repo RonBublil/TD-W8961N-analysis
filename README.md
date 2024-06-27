@@ -35,9 +35,16 @@ Next, I extracted the firmware using a SOIC-8 clip and the flashrom software. Th
 
 I then ran binwalk on the firmware binary file.
 
+### Entropy
+![Block1](https://github.com/RonBublil/TD-W8961N-analysis/blob/main/images/whole.png)
+
+
 As you can see, we found two LZMA data files at offsets 0x23A7CC. Running binwalk -E provided the same information in the entropy graph.
 
 We also observed two sections of null bytes in the data. I split the data file into three chunks using dd.
+
+
+### Ghidra reversing
 
 However, using xxd did not reveal any signs of a filesystem. I imported the chunks into Ghidra, where the best language configuration for my analysis was MIPS 32 little-endian.
 
