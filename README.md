@@ -202,7 +202,8 @@ UTLB_TLBL ..\core\sys_isr.c:336 sysreset()
  
 Looking at the stack pointers we can the the `ra` pointer which is the return address pointer is critical for exploitation because in case of a Buffer Stack Overflow we could manipulate the flow control of the system.nevertheless, the `ra` pointer is concerning because its return address is not `0x00000000` which is weird for me.
 
-Trying to understand which of the nuclei packets caused the crash i ran nuclei with a `-rl 1` for sending 1 packet for each second and then sending those packets using a python script or bash script. which both failed for me to crash the router which mean that there is might a timing factor here that caused the reapeted crash.
+Trying to understand which of the nuclei packets caused the crash i ran nuclei with a `-rl 1` for sending 1 packet for each second and then sending those packets using a python script or bash script. which both failed for me to crash the router which ment that there is might a timing factor here that caused the reapeted crash.
+I am still trying to figure out what could cause the problem cause each time a diffrent packet makes the router crash.
 
 
 
