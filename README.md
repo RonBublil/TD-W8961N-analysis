@@ -10,7 +10,7 @@ First i logged into the router's Webserver hosted at `192.168.1.1` while looking
 after a quick port scan i saw that port 80,23 and 443 which was a UPnP port 
 i mentiond below about further exploration with `Telnet`,moreover ,with the other ports i didnt find any significant information to mention here.
 
-## Denial Of Service Attack
+## Crash Observation
 
 while using nuclei for finding any network vulnerabilities i came across something odd which caused the router to crash repeatedly with a crash report which was shown in my uart terminal 
 ```
@@ -200,10 +200,43 @@ UTLB_TLBL ..\core\sys_isr.c:336 sysreset()
 
 ```
  
-Looking at the stack pointers we can the the `ra` pointer which is the return address pointer is critical for exploitation because in case of a Buffer Stack Overflow we could manipulate the flow control of the system.nevertheless, the `ra` pointer is concerning because its return address is not `0x00000000` which is weird for me.
+During testing, the system exhibited a crash consistently when the input size was exactly 102 bytes. Interestingly, larger inputs (e.g., 500 bytes) did not cause the system to crash, indicating potential input truncation or safe handling for inputs exceeding this threshold. This behavior suggests the presence of a fixed-size buffer in the program, where inputs below or equal to 102 bytes directly interact with critical memory areas.
 
-Trying to understand which of the nuclei packets caused the crash i ran nuclei with a `-rl 1` for sending 1 packet for each second and then sending those packets using a python script or bash script. which both failed for me to crash the router which ment that there is might a timing factor here that caused the reapeted crash.
-I am still trying to figure out what could cause the problem cause each time a diffrent packet makes the router crash.
+Stack Pointer Behavior
+
+The stack pointer ($sp) behavior varied based on the input size:
+
+For inputs between 35 and 38 bytes, ```$sp``` consistently pointed to ```0x8051ABE0```.
+
+For other input sizes, ```$sp``` pointed to ```0x8051AC68```.
+
+This change in stack pointer location hints at specific handling of inputs in this size range, possibly involving adjustments to local variables or stack layout. However, the return address ($ra) remained unaffected in all test cases, indicating that the input did not overwrite the function's control flow directly.
+
+Findings
+
+Crash Behavior:
+
+The crash occurs at 102 bytes, likely due to corruption of local variables or stack data near the buffer boundary.
+
+Larger inputs are either truncated or processed differently, avoiding the crash.
+
+No Return Address Overwrite:
+
+Despite exhaustive testing, there was no evidence of $ra being overwritten, which reduces the likelihood of a classic stack-based buffer overflow exploit.
+
+Possible Input Truncation:
+
+Inputs larger than 102 bytes do not seem to fully interact with the vulnerable function or memory region, pointing to potential truncation or input sanitization.
+
+While the lack of $ra control and predictable crashes beyond 102 bytes suggest limited exploitation potential, the consistent crash at 102 bytes warrants further investigation. Reversing the function handling this input in the firmware is essential to:
+
+Confirm the root cause of the crash (e.g., buffer boundary issues, logic errors).
+
+Determine if the behavior can be leveraged for any other type of vulnerability, such as information disclosure or local variable manipulation.
+
+This analysis highlights the importance of systematically studying crash behavior to narrow down potential exploits or vulnerabilities.
+
+
 
 
 
@@ -272,8 +305,6 @@ The `binwalk` tool was run on the `firmware.bin` file, which was extracted from 
 2. **Compressed Data:**
    There are multiple instances of LZMA compressed data found at different offsets (`0x24C33`, `0xCA633`). This compressed data could be critical as it may contain firmware-related files that can be extracted for further analysis.
    
-3. **File System Information:**
-   Various Unix paths, like `/usr/share/tabset/vt100`, were discovered, indicating the presence of files that might be important for the device's operation. These files could provide further insight into the firmware's functionality.
 
 ## Binwalk Output - Kernel Image and Other Findings
 
@@ -324,10 +355,11 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 
 ```
 
+During the analysis, I identified that the CA633 file contains numerous networking-related components, including httpd, sockets, and HTML documents.
 
-As shown here the first thing i found was the firmware img which included all the offsets for the rootfs which is located in `3556796160` which obviously ment that a filesystem is somewhere in that img and I can mount it, the main problem was that as shown above the offset is located in `3556796160` was way much bigger than file offset itself `1179588`.
-which ment for me that the rootfs offset was an internal offset because the img might be compressed.
-I've tried almost every way of decompressing the img using `gzip`,`lmza`.. but none of the ways worked for me 
+From the crash logs and extracted data, it became clear that the system is running ThreadX, a Real-Time Operating System (RTOS), on a MIPS 32 Big-Endian architecture. Additionally, I located what seems to be the firmware image, which I suspect contains the loading address for the system. However, I have yet to confirm this with certainty.
+
+Given the complexity of ThreadX as an RTOS, reverse engineering the entire firmware is a significant and time-intensive task. I continue to explore the firmware using Ghidra, and I will document further progress and findings in subsequent updates.
 
 
 
@@ -435,12 +467,17 @@ TP-LINK> ok
 
 
 ```
-I did try to find any memory related commands or and network services related commands but most of the commands are for configs,however i didnt check every command and i might missed something there.
+there 2 memory functions call ```miir``` read and ```miiw```write they didnt show any thing significant even though they might be.
 
-### Ghidra reversing
- I tried to reverse two main files in ghidra one of them was the img file i found at the second the lzma compressed file `tplink.img` and the second one was the whole binary i extracted from the chip `firmware.bin`
+## Ghidra Reversing
 
-in both of them i didnt explore enough to find something relatable to here.
+The architecture of the system is MIPS 32 Big-Endian, running the ThreadX RTOS. In ThreadX, each task functions as an independent thread. According to the crash log, the current task involved in the crash was httpd, which is implemented in assembly in the firmware.
+
+After performing several grep searches on the extracted firmware, I identified that the second LZMA-compressed section contains significant data related to networking services. However, locating a good function trace or finding static leads for meaningful analysis has proven to be challenging.
+
+At this stage, I continue reversing the firmware while iteratively making changes and testing to observe if they result in any new behavior or insights.
+
+
 
 # Summery
 
