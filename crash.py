@@ -14,7 +14,7 @@ headers = {
 
 # GET request 1
 url1 = f"{base_url}/Forms/login_security_1"
-params1 = {".classLoader.DefaultAssertionStatus": "ronbub"}
+params1 = {"a"*36: "ronbub"}
 response1 = requests.get(url1, headers=headers, params=params1)
 print(f"Response 1 Status: {response1.status_code}")
 print(response1.text)
